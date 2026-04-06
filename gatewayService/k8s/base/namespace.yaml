@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: observability
+  labels:
+    app.kubernetes.io/part-of: observability
+    app.kubernetes.io/name: otel-gateway
+    observability.my-org/metrics-scraper: "true"
+

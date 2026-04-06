@@ -1,0 +1,13 @@
+import type { ExpressApi, ObservabilityAdaptersApi, AppLogger, InitObservabilityOptions, LogFields, ObservabilityApi, StartSpanFunction } from './src/public-types';
+export type { ExpressApi, ObservabilityAdaptersApi, AppLogger, InitObservabilityOptions, LogFields, ObservabilityApi, StartSpanFunction } from './src/public-types';
+export declare const initObservability: (options?: InitObservabilityOptions) => Promise<ObservabilityApi>;
+export declare const shutdownObservability: () => Promise<void>;
+export declare const getLogger: () => AppLogger;
+export declare const createChildLogger: (bindings?: LogFields) => AppLogger;
+export declare const startSpan: StartSpanFunction;
+export declare const recordException: (error: unknown, options?: Record<string, unknown>) => void;
+export declare const incrementCounter: (name: string, value?: number, attributes?: LogFields) => void;
+export declare const recordHistogram: (name: string, value: number, attributes?: LogFields) => void;
+export declare const setGauge: (name: string, value: number, attributes?: LogFields) => void;
+export declare const express: ExpressApi;
+export declare const adapters: ObservabilityAdaptersApi;

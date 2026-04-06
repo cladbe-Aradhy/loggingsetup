@@ -1,0 +1,23 @@
+{
+  "name": "direct-signoz-grpc-logger-service",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TypeScript test service that sends logs directly to SigNoz through OTLP gRPC, without using the observability package.",
+  "main": "dist/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "dev": "npm run build && npm start"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.14.3",
+    "@grpc/proto-loader": "^0.8.0",
+    "express": "4.21.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.5.0",
+    "typescript": "^6.0.2"
+  }
+}

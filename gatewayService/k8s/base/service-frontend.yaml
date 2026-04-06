@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-gateway-frontend
+  labels:
+    app.kubernetes.io/name: otel-gateway
+    app.kubernetes.io/part-of: observability
+    observability.my-org/service-role: frontend
+spec:
+  type: ClusterIP
+  internalTrafficPolicy: Cluster
+  sessionAffinity: None
+  selector:
+    app.kubernetes.io/name: otel-gateway
+  ports:
+    - name: otlp-http
+      port: 4318
+      targetPort: otlp-http

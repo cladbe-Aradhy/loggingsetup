@@ -1,0 +1,22 @@
+services:
+  otel-gateway:
+    image: otel/opentelemetry-collector-contrib:0.118.0
+    container_name: otel-gateway
+    user: "0:0"
+    command:
+      - "--config=/etc/otelcol-contrib/${GATEWAY_COLLECTOR_CONFIG:-otel-collector-config.yaml}"
+    env_file:
+      - ${GATEWAY_ENV_FILE:-.env}
+    ports:
+      - "${GATEWAY_HOST_OTLP_GRPC_PORT:-14317}:4317"
+      - "${GATEWAY_HOST_OTLP_HTTP_PORT:-14318}:4318"
+      - "${GATEWAY_HOST_HEALTH_PORT:-13133}:13133"
+      - "${GATEWAY_HOST_METRICS_PORT:-18888}:8888"
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/otel-collector-config.yaml:ro
+      - ./otel-collector-config.low-noise.yaml:/etc/otelcol-contrib/otel-collector-config.low-noise.yaml:ro
+      - otel-gateway-data:/tmp/otelcol-data
+    restart: unless-stopped
+
+volumes:
+  otel-gateway-data:

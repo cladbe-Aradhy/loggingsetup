@@ -1,0 +1,237 @@
+extensions:
+  health_check:
+    endpoint: ${env:GATEWAY_HEALTH_ENDPOINT}
+  bearertokenauth/backend:
+    filename: /var/run/secrets/otel-gateway/backend-auth/token
+    scheme: Bearer
+  bearertokenauth/frontend:
+    filename: /var/run/secrets/otel-gateway/frontend-auth/token
+    scheme: Bearer
+  file_storage:
+    directory: /var/lib/otelcol/file_storage
+    create_directory: true
+    timeout: 10s
+    compaction:
+      on_start: true
+      on_rebound: true
+      rebound_needed_threshold_mib: 1024
+      rebound_trigger_threshold_mib: 128
+
+receivers:
+  otlp/backend:
+    protocols:
+      grpc:
+        endpoint: ${env:GATEWAY_OTLP_GRPC_ENDPOINT}
+        auth:
+          authenticator: bearertokenauth/backend
+        max_concurrent_streams: ${env:GATEWAY_OTLP_GRPC_MAX_CONCURRENT_STREAMS}
+        max_recv_msg_size_mib: ${env:GATEWAY_OTLP_GRPC_MAX_RECV_MSG_SIZE_MIB}
+        keepalive:
+          enforcement_policy:
+            min_time: ${env:GATEWAY_OTLP_GRPC_MIN_TIME_BETWEEN_PINGS}
+            permit_without_stream: false
+          server_parameters:
+            max_connection_age: ${env:GATEWAY_OTLP_GRPC_MAX_CONNECTION_AGE}
+            max_connection_age_grace: ${env:GATEWAY_OTLP_GRPC_MAX_CONNECTION_AGE_GRACE}
+            max_connection_idle: ${env:GATEWAY_OTLP_GRPC_MAX_CONNECTION_IDLE}
+            time: ${env:GATEWAY_OTLP_GRPC_KEEPALIVE_TIME}
+            timeout: ${env:GATEWAY_OTLP_GRPC_KEEPALIVE_TIMEOUT}
+  otlp/frontend:
+    protocols:
+      http:
+        endpoint: ${env:GATEWAY_OTLP_HTTP_ENDPOINT}
+        auth:
+          authenticator: bearertokenauth/frontend
+        cors:
+          allowed_origins:
+            - ${env:GATEWAY_FRONTEND_CORS_ALLOWED_ORIGIN}
+            - ${env:GATEWAY_FRONTEND_CORS_ALLOWED_ORIGIN_2}
+            - ${env:GATEWAY_FRONTEND_CORS_ALLOWED_ORIGIN_3}
+            - ${env:GATEWAY_FRONTEND_CORS_ALLOWED_ORIGIN_4}
+          allowed_headers:
+            - Authorization
+            - Content-Type
+            - Accept
+            - X-Requested-With
+          max_age: ${env:GATEWAY_FRONTEND_CORS_MAX_AGE}
+        max_request_body_size: ${env:GATEWAY_OTLP_HTTP_MAX_REQUEST_BODY_SIZE}
+        read_timeout: ${env:GATEWAY_OTLP_HTTP_READ_TIMEOUT}
+        read_header_timeout: ${env:GATEWAY_OTLP_HTTP_READ_HEADER_TIMEOUT}
+        write_timeout: ${env:GATEWAY_OTLP_HTTP_WRITE_TIMEOUT}
+        idle_timeout: ${env:GATEWAY_OTLP_HTTP_IDLE_TIMEOUT}
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: ${env:GATEWAY_MEMORY_LIMIT_MIB}
+    spike_limit_mib: ${env:GATEWAY_MEMORY_SPIKE_LIMIT_MIB}
+
+  k8sattributes:
+    auth_type: serviceAccount
+    passthrough: false
+    extract:
+      metadata:
+        - k8s.namespace.name
+        - k8s.node.name
+        - k8s.pod.name
+        - k8s.pod.uid
+        - k8s.deployment.name
+        - k8s.statefulset.name
+        - k8s.daemonset.name
+
+  resourcedetection:
+    detectors: [env, system]
+    timeout: 2s
+    override: false
+
+  resource/gateway:
+    attributes:
+      - key: service.namespace
+        action: insert
+        value: ${env:GATEWAY_SERVICE_NAMESPACE}
+      - key: telemetry.gateway.name
+        action: insert
+        value: ${env:GATEWAY_NAME}
+      - key: deployment.environment.name
+        action: upsert
+        from_attribute: deployment.environment
+      - key: deployment.environment.name
+        action: upsert
+        from_attribute: environment
+      - key: deployment.environment.name
+        action: upsert
+        from_attribute: env
+      - key: deployment.environment
+        action: delete
+      - key: environment
+        action: delete
+      - key: env
+        action: delete
+
+  resource/backend-ingest:
+    attributes:
+      - key: telemetry.ingest.path
+        action: upsert
+        value: backend
+      - key: telemetry.ingest.protocol
+        action: upsert
+        value: grpc
+
+  resource/frontend-ingest:
+    attributes:
+      - key: telemetry.ingest.path
+        action: upsert
+        value: frontend
+      - key: telemetry.ingest.protocol
+        action: upsert
+        value: http
+
+  attributes/common:
+    actions:
+      - key: authorization
+        action: delete
+      - key: cookie
+        action: delete
+      - key: set-cookie
+        action: delete
+      - key: password
+        action: delete
+      - key: token
+        action: delete
+
+  attributes/metrics-cardinality:
+    actions:
+      - key: request_id
+        action: delete
+      - key: user.id
+        action: delete
+      - key: session.id
+        action: delete
+      - key: http.request.header.authorization
+        action: delete
+
+  transform/normalize:
+    error_mode: ignore
+    trace_statements:
+      - context: resource
+        statements:
+          - set(attributes["deployment.environment.name"], "production") where attributes["deployment.environment.name"] == "prod"
+          - set(attributes["deployment.environment.name"], "staging") where attributes["deployment.environment.name"] == "stage"
+      - context: span
+        statements:
+          - set(attributes["app.route.class"], "health") where attributes["http.route"] == "/health"
+          - set(attributes["app.route.class"], "health") where attributes["url.path"] == "/health"
+    log_statements:
+      - context: resource
+        statements:
+          - set(attributes["deployment.environment.name"], "production") where attributes["deployment.environment.name"] == "prod"
+          - set(attributes["deployment.environment.name"], "staging") where attributes["deployment.environment.name"] == "stage"
+      - context: log
+        statements:
+          - set(attributes["app.route.class"], "health") where attributes["http_route"] == "/health"
+          - set(attributes["app.route.class"], "health") where attributes["path"] == "/health"
+    metric_statements:
+      - context: resource
+        statements:
+          - set(attributes["deployment.environment.name"], "production") where attributes["deployment.environment.name"] == "prod"
+          - set(attributes["deployment.environment.name"], "staging") where attributes["deployment.environment.name"] == "stage"
+      - context: datapoint
+        statements:
+          - set(attributes["app.route.class"], "health") where attributes["http.route"] == "/health"
+
+  batch:
+    timeout: ${env:GATEWAY_BATCH_TIMEOUT}
+    send_batch_size: ${env:GATEWAY_BATCH_SEND_SIZE}
+    send_batch_max_size: ${env:GATEWAY_BATCH_MAX_SIZE}
+
+exporters:
+  otlp/signoz:
+    endpoint: ${env:GATEWAY_EXPORT_OTLP_GRPC_ENDPOINT}
+    tls:
+      insecure: ${env:GATEWAY_EXPORT_OTLP_INSECURE}
+      insecure_skip_verify: ${env:GATEWAY_EXPORT_OTLP_INSECURE_SKIP_VERIFY}
+    timeout: ${env:GATEWAY_EXPORT_TIMEOUT}
+    sending_queue:
+      enabled: true
+      storage: file_storage
+      num_consumers: ${env:GATEWAY_EXPORT_QUEUE_NUM_CONSUMERS}
+      queue_size: ${env:GATEWAY_EXPORT_QUEUE_SIZE}
+    retry_on_failure:
+      enabled: true
+      initial_interval: ${env:GATEWAY_EXPORT_RETRY_INITIAL_INTERVAL}
+      max_interval: ${env:GATEWAY_EXPORT_RETRY_MAX_INTERVAL}
+      max_elapsed_time: ${env:GATEWAY_EXPORT_RETRY_MAX_ELAPSED_TIME}
+
+service:
+  extensions: [health_check, bearertokenauth/backend, bearertokenauth/frontend, file_storage]
+  telemetry:
+    logs:
+      level: ${env:GATEWAY_LOG_LEVEL}
+    metrics:
+      address: ${env:GATEWAY_INTERNAL_METRICS_ENDPOINT}
+      level: normal
+  pipelines:
+    traces/backend:
+      receivers: [otlp/backend]
+      processors: [memory_limiter, k8sattributes, resourcedetection, resource/gateway, resource/backend-ingest, attributes/common, transform/normalize, batch]
+      exporters: [otlp/signoz]
+    traces/frontend:
+      receivers: [otlp/frontend]
+      processors: [memory_limiter, resourcedetection, resource/gateway, resource/frontend-ingest, attributes/common, transform/normalize, batch]
+      exporters: [otlp/signoz]
+    metrics/backend:
+      receivers: [otlp/backend]
+      processors: [memory_limiter, k8sattributes, resourcedetection, resource/gateway, resource/backend-ingest, attributes/common, attributes/metrics-cardinality, transform/normalize, batch]
+      exporters: [otlp/signoz]
+    metrics/frontend:
+      receivers: [otlp/frontend]
+      processors: [memory_limiter, resourcedetection, resource/gateway, resource/frontend-ingest, attributes/common, attributes/metrics-cardinality, transform/normalize, batch]
+      exporters: [otlp/signoz]
+    logs/backend:
+      receivers: [otlp/backend]
+      processors: [memory_limiter, k8sattributes, resourcedetection, resource/gateway, resource/backend-ingest, attributes/common, transform/normalize, batch]
+      exporters: [otlp/signoz]
+    logs/frontend:
+      receivers: [otlp/frontend]
+      processors: [memory_limiter, resourcedetection, resource/gateway, resource/frontend-ingest, attributes/common, transform/normalize, batch]
+      exporters: [otlp/signoz]

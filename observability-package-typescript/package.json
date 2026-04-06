@@ -1,0 +1,76 @@
+{
+  "name": "@my-org/observability-node-ts",
+  "version": "1.0.0",
+  "description": "Production-grade reusable Node.js observability package in TypeScript with traces, metrics, logs, error capture, and Express helpers using OTLP.",
+  "main": "dist/index.js",
+  "module": "index.mjs",
+  "types": "dist/index.d.ts",
+  "type": "commonjs",
+  "files": [
+    "index.mjs",
+    "dist/index.js",
+    "dist/index.d.ts",
+    "dist/src",
+    "README.md",
+    ".env.example"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./index.mjs",
+      "require": "./dist/index.js",
+      "default": "./index.mjs"
+    }
+  },
+  "keywords": [
+    "observability",
+    "opentelemetry",
+    "otel",
+    "express",
+    "logging",
+    "metrics",
+    "tracing",
+    "otlp",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=18.17.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test:unit": "npm run build && node --test dist/test/*.test.js",
+    "test:smoke:gateway-grpc": "npm run build && node dist/test/smoke-gateway-grpc.js",
+    "example:basic": "npm run build && node dist/examples/basic-express-app/app.js",
+    "example:pino": "npm run build && node dist/examples/pino-express-app/app.js",
+    "example:winston": "npm run build && node dist/examples/winston-express-app/app.js",
+    "pack:check": "npm run build && npm pack --dry-run"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "1.9.0",
+    "@opentelemetry/api-logs": "0.57.0",
+    "@opentelemetry/auto-instrumentations-node": "0.57.0",
+    "@opentelemetry/exporter-logs-otlp-grpc": "0.57.0",
+    "@opentelemetry/exporter-logs-otlp-http": "0.57.0",
+    "@opentelemetry/exporter-metrics-otlp-grpc": "0.57.0",
+    "@opentelemetry/exporter-metrics-otlp-http": "0.57.0",
+    "@opentelemetry/exporter-trace-otlp-grpc": "0.57.0",
+    "@opentelemetry/exporter-trace-otlp-http": "0.57.0",
+    "@opentelemetry/instrumentation-dns": "0.44.0",
+    "@opentelemetry/instrumentation-runtime-node": "0.16.0",
+    "@opentelemetry/resources": "1.30.1",
+    "@opentelemetry/sdk-logs": "0.57.0",
+    "@opentelemetry/sdk-metrics": "1.30.1",
+    "@opentelemetry/sdk-node": "0.57.0",
+    "@opentelemetry/semantic-conventions": "1.30.0",
+    "express": "4.21.2",
+    "pino": "9.5.0",
+    "winston": "3.17.0",
+    "winston-transport": "4.9.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.5.0",
+    "@types/pino": "^7.0.4",
+    "typescript": "^6.0.2"
+  }
+}

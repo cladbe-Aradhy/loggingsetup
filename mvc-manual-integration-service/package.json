@@ -1,0 +1,24 @@
+{
+  "name": "mvc-manual-integration-service",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Simple TypeScript MVC service with no observability integration so integration can be added manually later.",
+  "main": "dist/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "dev": "npm run build && npm start",
+    "test": "npm run build && node --test test/*.test.js",
+    "test:smoke:gateway": "bash test/smoke-gateway.sh"
+  },
+  "dependencies": {
+    "@my-org/observability-node-ts": "file:../observability-package-typescript",
+    "express": "4.21.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.5.0",
+    "typescript": "^6.0.2"
+  }
+}

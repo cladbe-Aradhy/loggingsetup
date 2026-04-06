@@ -1,0 +1,32 @@
+'use strict';
+Object.defineProperty(exports, "__esModule", { value: true });
+module.exports = {
+    serviceName: 'node-service',
+    serviceVersion: 'unknown',
+    environment: 'development',
+    otlpEndpoint: 'http://localhost:4317',
+    otlpProtocol: 'grpc',
+    logLevel: 'info',
+    enableConsoleCapture: true,
+    enableConsoleMirror: true,
+    redactKeys: ['password', 'token', 'authorization', 'cookie', 'set-cookie', 'secret', 'apiKey'],
+    disableAutoInstrumentations: [],
+    metricsInterval: 10000,
+    captureUncaught: true,
+    captureUnhandledRejection: true,
+    emitOnlyWarnErrorFatal: false,
+    smartSeverityDetection: true,
+    debug: false,
+    extraResourceAttributes: {},
+    loggerName: 'application',
+    consoleMirrorInDevelopmentOnly: true,
+    logDedupeEnabled: true,
+    logDedupeWindowMs: 3000,
+    logDedupeLevels: ['warn', 'error', 'fatal'],
+    logExportMaxQueueSize: 2048,
+    logExportMaxBatchSize: 512,
+    logExportScheduledDelayMillis: 200,
+    logExportTimeoutMillis: 30000,
+    failFast: false,
+    shutdownTimeoutMillis: 5000
+};
