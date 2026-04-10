@@ -49,6 +49,7 @@ export async function handleGrpcLogsExport(
     const forwardResult = await tryForwardStoredPayload(stored);
 
     if (forwardResult.forwarded) {
+      // ExportLogsServiceResponse is an empty OTLP proto message on success.
       callback(null, {});
       return;
     }

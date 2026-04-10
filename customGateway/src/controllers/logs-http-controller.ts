@@ -1,6 +1,5 @@
 import type { Context } from 'hono';
-import { SIGNOZ_OTLP_GRPC_TARGET } from '../config';
-import { getQueueCounts, notePendingPayload, saveRawPayload } from '../storage/local-store';
+import { getQueueCounts, saveRawPayload } from '../storage/local-store';
 import { otlpLogsPayloadSchema } from '../validation/otlp-logs-schema';
 import { tryForwardStoredPayload } from '../services/log-forwarder';
 import { canAcceptNewPayload } from '../services/traffic';
@@ -82,46 +81,26 @@ export async function handleHttpLogs(c: Context) {
   }
 
   const stored = saveRawPayload('logs', 'http', contentType, rawBody);
+  const forwardResult = await tryForwardStoredPayload(stored);
 
-  try {
-    const forwardResult = await tryForwardStoredPayload(stored);
-
-    if (forwardResult.forwarded) {
-      return c.json({
-        ok: true,
-        message: 'logs payload forwarded to SigNoz',
-        item: stored,
-        queueCounts: getQueueCounts(),
-        forward: forwardResult
-      });
-    }
-
-    return c.json(
-      {
-        ok: true,
-        message: buildFreshQueueMessage(stored, forwardResult),
-        item: stored,
-        queueCounts: getQueueCounts(),
-        forward: forwardResult
-      },
-      202
-    );
-  } catch (error) {
-    notePendingPayload(stored, error instanceof Error ? error.message : String(error));
-
-    return c.json(
-      {
-        ok: true,
-        message: buildFreshQueueMessage(stored, {
-          attempted: false,
-          forwarded: false,
-          target: SIGNOZ_OTLP_GRPC_TARGET,
-          error: stored.lastError || 'unexpected forwarding error'
-        }),
-        item: stored,
-        queueCounts: getQueueCounts()
-      },
-      202
-    );
+  if (forwardResult.forwarded) {
+    return c.json({
+      ok: true,
+      message: 'logs payload forwarded to SigNoz',
+      item: stored,
+      queueCounts: getQueueCounts(),
+      forward: forwardResult
+    });
   }
+
+  return c.json(
+    {
+      ok: true,
+      message: buildFreshQueueMessage(stored, forwardResult),
+      item: stored,
+      queueCounts: getQueueCounts(),
+      forward: forwardResult
+    },
+    202
+  );
 }
